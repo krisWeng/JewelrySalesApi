@@ -3,7 +3,6 @@ var express = require('express');
 var router = express.Router();
 var mysql = require('mysql');
 
-var formidable = require('formidable');
 var path = require("path");
 var fs = require("fs");
 
@@ -971,9 +970,9 @@ router.post('/ConfirmTheOrder', (req, res) => {
 
 // 退款
 router.post('/drawbackTheOrder', (req, res) => {
-  var sql = 'update order_info set order_status=0 where order_id=?'
+  var sql = 'update order_info set order_status=0, drawback_type=?, drawback_reason=?, drawback_tips=?, shop_status=? where order_id=?'
   var params = req.body;
-  conn.query(sql, [params.order_id], function(err, result) {
+  conn.query(sql, [params.order_id, params.drawback_type, params.drawback_reason, params.drawback_tips, params.shop_status], function(err, result) {
     if (err) {
       console.log(err);
     }
