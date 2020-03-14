@@ -41,7 +41,7 @@ router.post('/adminLogin', (req, res) => {
 router.post('/CartAllUserNum', (req, res) => {
   var sql = 'select count(user_id) as AllNum from user_info'
   var params = req.body;
-  conn.query(sql, [params.admin_name, params.admin_password], function(err, result) {
+  conn.query(sql, function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -53,7 +53,7 @@ router.post('/CartAllUserNum', (req, res) => {
 router.post('/CartAllOrderNum', (req, res) => {
   var sql = 'select count(theOneID) as AllNum from order_info'
   var params = req.body;
-  conn.query(sql, [params.admin_name, params.admin_password], function(err, result) {
+  conn.query(sql, function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -65,7 +65,7 @@ router.post('/CartAllOrderNum', (req, res) => {
 router.post('/CartAllAccountNum', (req, res) => {
   var sql = 'select sum(totalPrice) as AllNum from order_info where drawbackTime is null and IsDelete = 1'
   var params = req.body;
-  conn.query(sql, [params.admin_name, params.admin_password], function(err, result) {
+  conn.query(sql, function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -74,41 +74,19 @@ router.post('/CartAllAccountNum', (req, res) => {
     }
   })
 });
-// 会员人数
-router.post('/AllUserNum', (req, res) => {
-  var sql = 'select * from user_info where DATE_SUB(CURDATE(), INTERVAL'+'day=?'+' DAY) <= date(register_time)'
-  var sql2 = "select date_format(register_time,'%Y-%m-%d') as register_time, count(user_id) as user_num from user_info where DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(register_time) GROUP BY date_format(register_time,'%Y-%m-%d')"
-  var sql3 = "select date_format(register_time,'%Y-%m-%d') as register_time, count(user_id) as user_num from user_info where DATE_SUB(CURDATE(), INTERVAL 15 DAY) <= date(register_time) GROUP BY date_format(register_time,'%Y-%m-%d')"
-  var sql4 = "select date_format(register_time,'%Y-%m-%d') as register_time, count(user_id) as user_num from user_info where DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(register_time) GROUP BY date_format(register_time,'%Y-%m-%d')"
+
+// 不同状态的订单数
+router.post('/CartAllStatusNum', (req, res) => {
+  var sql = 'select count(theOneID) as AllNum from order_info where order_status=?'
   var params = req.body;
-  if(params.day==7){
-    conn.query(sql2, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-      if (result) {
-        jsonWrite(res, result);
-      }
-    })
-  }else if(params.day==15){
-    conn.query(sql3, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-      if (result) {
-        jsonWrite(res, result);
-      }
-    })
-  }else if(params.day==30){
-    conn.query(sql4, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-      if (result) {
-        jsonWrite(res, result);
-      }
-    })
-  }
+  conn.query(sql, [params.order_status], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
 });
 
 // 订单总数
@@ -117,43 +95,6 @@ router.post('/AllOrderNum', (req, res) => {
   var sql2 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(theOneID) as order_num from order_info where DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d')"
   var sql3 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(theOneID) as order_num from order_info where DATE_SUB(CURDATE(), INTERVAL 15 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d')"
   var sql4 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(theOneID) as order_num from order_info where DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d')"
-  var params = req.body;
-  if(params.day==7){
-    conn.query(sql2, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-      if (result) {
-        jsonWrite(res, result);
-      }
-    })
-  }else if(params.day==15){
-    conn.query(sql3, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-      if (result) {
-        jsonWrite(res, result);
-      }
-    })
-  }else if(params.day==30){
-    conn.query(sql4, function(err, result) {
-      if (err) {
-        console.log(err);
-      }
-      if (result) {
-        jsonWrite(res, result);
-      }
-    })
-  }
-});
-
-// 金额总数
-router.post('/AllAccountNum', (req, res) => {
-  var sql = 'select * from order_info where DATE_SUB(CURDATE(), INTERVAL'+'day=?'+' DAY) <= date(payTime) and drawbackTime is null'
-  var sql2 = "select date_format(payTime,'%Y-%m-%d') as payTime, sum(totalPrice) as account_num from order_info where DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(payTime) and drawbackTime is null GROUP BY date_format(payTime,'%Y-%m-%d')"
-  var sql3 = "select date_format(payTime,'%Y-%m-%d') as payTime, sum(totalPrice) as account_num from order_info where DATE_SUB(CURDATE(), INTERVAL 15 DAY) <= date(payTime) and drawbackTime is null GROUP BY date_format(payTime,'%Y-%m-%d')"
-  var sql4 = "select date_format(payTime,'%Y-%m-%d') as payTime, sum(totalPrice) as account_num from order_info where DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(payTime) and drawbackTime is null GROUP BY date_format(payTime,'%Y-%m-%d')"
   var params = req.body;
   if(params.day==7){
     conn.query(sql2, function(err, result) {
@@ -331,7 +272,7 @@ router.post('/delOneAdmin', (req, res) => {
 router.post('/findAllOrder', (req, res) => {
   var sql = 'select * from order_info where IsDelete = 1 order by theOneID desc'
   var params = req.body;
-  conn.query(sql, [params.page], function(err, result) {
+  conn.query(sql, function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -339,6 +280,32 @@ router.post('/findAllOrder', (req, res) => {
       jsonWrite(res, result);
     }
   })
+});
+
+// 不同状态下的订单
+router.post('/findStatusOrder', (req, res) => {
+  var sql = 'select * from order_info order by theOneID desc'
+  var sql2 = 'select * from order_info where order_status=? order by theOneID desc'
+  var params = req.body;
+  if(params.order_status==1){
+    conn.query(sql, function(err, result) {
+      if (err) {
+        console.log(err);
+      }
+      if (result) {
+        jsonWrite(res, result);
+      }
+    })
+  }else{
+    conn.query(sql2, [params.order_status], function(err, result) {
+      if (err) {
+        console.log(err);
+      }
+      if (result) {
+        jsonWrite(res, result);
+      }
+    })
+  }
 });
 
 // 条件搜索订单
@@ -506,7 +473,7 @@ router.post('/updateOneLogistics', (req, res) => {
 
 // 所有商品
 router.post('/findAllShop', (req, res) => {
-  var sql = 'select * from shop_info where IsDelete = 1'
+  var sql = 'select * from shop_info'
   var params = req.body;
   conn.query(sql, function(err, result) {
     if (err) {
@@ -557,7 +524,7 @@ router.post('/findOneShopPic', (req, res) => {
     }
   })
 });
-router.post('/uppdateOneShopPic', (req, res) => {
+router.post('/updateOneShopPic', (req, res) => {
   var sql = 'update pic_info set pic_root=? where shop_id=?'
   var params = req.body;
   conn.query(sql, [params.pic_root, params.shop_id], function(err, result) {
@@ -571,7 +538,7 @@ router.post('/uppdateOneShopPic', (req, res) => {
 });
 
 // 商品原价
-router.post('/uppdateOneShopPrice', (req, res) => {
+router.post('/updateOneShopPrice', (req, res) => {
   var sql = 'update shop_info set old_price=? where shop_id=?'
   var params = req.body;
   conn.query(sql, [params.old_price, params.shop_id], function(err, result) {
@@ -584,7 +551,7 @@ router.post('/uppdateOneShopPrice', (req, res) => {
   })
 });
 
-// 软删除商品
+// 下架商品
 router.post('/delOneShop', (req, res) => {
   var sql = 'update shop_info set IsDelete=0 where shop_id=?'
   var params = req.body;
@@ -597,6 +564,20 @@ router.post('/delOneShop', (req, res) => {
     }
   })
 });
+// 上架商品
+router.post('/backOneShop', (req, res) => {
+  var sql = 'update shop_info set IsDelete=1 where shop_id=?'
+  var params = req.body;
+  conn.query(sql, [params.shop_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
 
 
 // 发布商品
