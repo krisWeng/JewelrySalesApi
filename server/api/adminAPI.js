@@ -38,38 +38,26 @@ router.post('/adminLogin', (req, res) => {
 });
 
 // 卡片内容
-router.post('/CartAllUserNum', (req, res) => {
-  var sql = 'select count(user_id) as AllNum from user_info, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+router.post('/CartAllNum', (req, res) => {
+  var sql = 'select t1.userNum, t2.orderNum, t3.moneyNum from (select count(user_id) as userNum from user_info) t1, (select count(id) as orderNum from order_info) t2, (select sum(totalPrice) as moneyNum from order_info where order_info.drawbackTime is null) t3, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
   var params = req.body;
   conn.query(sql, [params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
-    }
-  })
-});
-router.post('/CartAllOrderNum', (req, res) => {
-  var sql = 'select count(theOneID) as AllNum from order_info, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var params = req.body;
-  conn.query(sql, [params.admin_uuid], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
-      jsonWrite(res, result);
-    }
-  })
-});
-router.post('/CartAllAccountNum', (req, res) => {
-  var sql = 'select sum(totalPrice) as AllNum from order_info, admin_info where order_info.drawbackTime is null and order_info.IsDelete = 1 and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var params = req.body;
-  conn.query(sql, [params.admin_uuid], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
+      let a = {}
+      a.name="会员人数"
+      a.num = result[0].userNum
+      let b = {}
+      b.name="订单总数"
+      b.num = result[0].orderNum
+      let c = {}
+      c.name="金额总数"
+      c.num = result[0].moneyNum
+      result[0]=a
+      result.push(b)
+      result.push(c)
       jsonWrite(res, result);
     }
   })
@@ -77,9 +65,9 @@ router.post('/CartAllAccountNum', (req, res) => {
 
 // 不同状态的订单数
 router.post('/CartAllStatusNum', (req, res) => {
-  var sql = 'select count(theOneID) as AllNum from order_info, admin_info where order_info.order_status=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql = 'select count(case when order_status = 2 then 1 end) as wait_pay, count(case when order_status = 3 then 1 end) as wait_send, count(case when order_status = 4 then 1 end) as wait_get, count(case when order_status = 6 then 1 end) as ok, count(case when order_status = 7 then 1 end) as wait_back from (select order_info.* from order_info GROUP BY order_id HAVING count(order_id)>=1) tb_1, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
   var params = req.body;
-  conn.query(sql, [params.order_status, params.admin_uuid], function(err, result) {
+  conn.query(sql, [params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -92,9 +80,9 @@ router.post('/CartAllStatusNum', (req, res) => {
 // 订单总数
 router.post('/AllOrderNum', (req, res) => {
   var sql = 'select order_info.* from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL'+'day=?'+' DAY) <= date(payTime) and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var sql2 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(theOneID) as order_num from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d') and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
-  var sql3 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(theOneID) as order_num from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL 15 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d') and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
-  var sql4 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(theOneID) as order_num from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d') and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql2 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(id) as order_num from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d') and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql3 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(id) as order_num from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL 15 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d') and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql4 = "select date_format(payTime,'%Y-%m-%d') as payTime, count(id) as order_num from order_info, admin_info where DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(payTime) GROUP BY date_format(payTime,'%Y-%m-%d') and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
   var params = req.body;
   if(params.day==7){
     conn.query(sql2, [params.admin_uuid], function(err, result) {
@@ -257,8 +245,7 @@ router.post('/delOneAdmin', (req, res) => {
 
 // 所有订单
 router.post('/findAllOrder', (req, res) => {
-  var sql = 'select order_info.* from order_info, admin_info where order_info.IsDelete = 1 and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by theOneID desc'
-  var sql1 = 'select count(theOneID) as totalSize from order_info, admin_info where order_info.IsDelete = 1 and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql = 'select order_info.*, shop_name, user_name, brand_name, receiving_info.* from order_info, admin_info, shop_info, user_info, brand_info, receiving_info where order_info.shop_id=shop_info.shop_id and order_info.user_id=user_info.user_id and shop_info.brand_id=brand_info.brand_id and order_info.consignee_id=receiving_info.consignee_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by order_info.id desc'
   var params = req.body;
   conn.query(sql, [params.admin_uuid], function(err, result) {
     if (err) {
@@ -272,8 +259,8 @@ router.post('/findAllOrder', (req, res) => {
 
 // 不同状态下的订单
 router.post('/findStatusOrder', (req, res) => {
-  var sql = 'select order_info.* from order_info, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by theOneID desc'
-  var sql2 = 'select order_info.* from order_info, admin_info where order_status=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by theOneID desc'
+  var sql = 'select order_info.*, shop_name, user_name, brand_name, receiving_info.* from order_info, admin_info, shop_info, user_info, brand_info, receiving_info where order_info.shop_id=shop_info.shop_id and order_info.user_id=user_info.user_id and shop_info.brand_id=brand_info.brand_id and order_info.consignee_id=receiving_info.consignee_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by order_info.id desc'
+  var sql2 = 'select order_info.*, user_name, shop_name, brand_name, receiving_info.* from order_info, admin_info, user_info, shop_info, brand_info, receiving_info where order_status=? and order_info.user_id=user_info.user_id and order_info.shop_id=shop_info.shop_id and shop_info.brand_id=brand_info.brand_id and order_info.consignee_id=receiving_info.consignee_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by id desc'
   var params = req.body;
   if(params.order_status==1){
     conn.query(sql, [params.admin_uuid], function(err, result) {
@@ -298,23 +285,9 @@ router.post('/findStatusOrder', (req, res) => {
 
 // 条件搜索订单
 router.post('/findOneOrder', (req, res) => {
-  var sql = 'select order_info.* from order_info, admin_info where order_info.IsDelete = 1 and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) and (order_id=? or user_name=? or consignee=? or consignee_phone=? or address=? or shop_id=? or brand_name=? or courier_number=?)'
+  var sql = 'select order_info.*, shop_name, user_name, brand_name, receiving_info.* from order_info, admin_info, shop_info, user_info, brand_info, receiving_info, logistics_info where order_info.shop_id=shop_info.shop_id and order_info.user_id=user_info.user_id and shop_info.brand_id=brand_info.brand_id and order_info.consignee_id=receiving_info.consignee_id and order_info.order_id=logistics_info.order_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) and (order_info.order_id=? or user_info.user_name=? or receiving_info.consignee=? or receiving_info.address=? or logistics_info.logistics_number=?)'
   var params = req.body;
-  conn.query(sql, [params.admin_uuid, params.order_id, params.user_name, params.consignee, params.consignee_phone, params.address, params.shop_id, params.brand_name, params.courier_number], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
-      jsonWrite(res, result);
-    }
-  })
-});
-
-// 编辑订单商品
-router.post('/updateOrderShop', (req, res) => {
-  var sql = 'update order_info, admin_info set shop_id=?, shop_name=? where theOneID=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var params = req.body;
-  conn.query(sql, [params.shop_id, params.shop_name, params.theOneID, params.admin_uuid], function(err, result) {
+  conn.query(sql, [params.admin_uuid, params.order_id, params.user_name, params.consignee, params.address, params.logistics_number], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -326,14 +299,22 @@ router.post('/updateOrderShop', (req, res) => {
 
 // 确认发货
 router.post('/updateOneDeliver', (req, res) => {
-  var sql = "update order_info, admin_info set order_status=4, logistics_company=?, courier_number=?, logistic_information=?,  deliveryTime=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql = "update order_info, admin_info set order_status=4, deliveryTime=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql1 = "insert into logistics_info (order_id, logistics_company, logistics_number, logistics_information) value (?, ?, ?, ?)"
   var params = req.body;
-  conn.query(sql, [params.logistics_company, params.courier_number, params.logistic_information, params.deliveryTime, params.order_id, params.admin_uuid], function(err, result) {
+  conn.query(sql, [params.deliveryTime, params.order_id, params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
+      conn.query(sql1, [params.order_id, params.logistics_company, params.logistics_number, params.logistics_information], function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        if (result) {
+          jsonWrite(res, result);
+        }
+      })
     }
   })
 });
@@ -350,6 +331,21 @@ router.post('/updateOneReceiving', (req, res) => {
     }
   })
 });
+
+// 获取退款申请
+router.post('/findDrawback', (req, res) => {
+  var sql = 'select drackback_info.* from drackback_info, admin_info where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var params = req.body;
+  conn.query(sql, [params.order_id, params.admin_uuid], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
 // 确认退款
 router.post('/updateOneDrawback', (req, res) => {
   var sql = "update order_info, admin_info set order_status=7, drawbackTime=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
@@ -403,12 +399,48 @@ router.post('/updateShopStock', (req, res) => {
   })
 });
 
+// 拒绝退款
+router.post('/updateNoDrawback', (req, res) => {
+  var sql = "update order_info, admin_info set order_status=5 where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql1 = "delete from drackback_info where order_id=?"
+  var params = req.body;
+  conn.query(sql, [params.order_id, params.admin_uuid], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      conn.query(sql1, [params.order_id], function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        if (result) {
+          jsonWrite(res, result);
+        }
+      })
+    }
+  })
+});
+
 // 编辑收货人信息
 router.post('/updateOneConsignee', (req, res) => {
   var sql = "update order_info, admin_info set consignee=?, consignee_phone=?, province=?, city=?, address=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
   var params = req.body;
-  console.log(params)
   conn.query(sql, [params.consignee, params.consignee_phone, params.province, params.city, params.address, params.order_id, params.admin_uuid], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+
+// 查询物流信息
+router.post('/findLogistics', (req, res) => {
+  var sql = 'select logistics_info.* from logistics_info, admin_info where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var params = req.body;
+  conn.query(sql, [params.order_id, params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -420,10 +452,9 @@ router.post('/updateOneConsignee', (req, res) => {
 
 // 编辑物流信息
 router.post('/updateOneLogistics', (req, res) => {
-  var sql = "update order_info, admin_info set logistic_information=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql = "update logistics_info, admin_info set logistics_information=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
   var params = req.body;
-  console.log(params)
-  conn.query(sql, [params.logistic_information, params.order_id, params.admin_uuid], function(err, result) {
+  conn.query(sql, [params.logistics_information, params.order_id, params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -491,28 +522,29 @@ router.post('/addOneBrand', (req, res) => {
 });
 
 // 查询品牌下的商品数量
-router.post('/findOneBrandShop', (req, res) => {
-  var sql = 'select count(shop_info.shop_id) as shopNum from brand_info, shop_info, admin_info where brand_info.id=? and brand_info.brand_id=shop_info.brand_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var params = req.body;
-  conn.query(sql, [params.id, params.admin_uuid], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
-      jsonWrite(res, result);
-    }
-  })
-});
-// 删除品牌
 router.post('/delOneBrand', (req, res) => {
-  var sql = 'update brand_info, admin_info set brand_info.IsDelete=0 where id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql = 'select count(shop_info.shop_id) as shopNum from brand_info, shop_info, admin_info where brand_info.id=? and brand_info.brand_id=shop_info.brand_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql1 = 'update brand_info, admin_info set brand_info.IsDelete=0 where id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
   var params = req.body;
   conn.query(sql, [params.id, params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
+      if(result[0].shopNum==0){
+        conn.query(sql1, [params.id, params.admin_uuid], function(err, result) {
+          if (err) {
+            console.log(err);
+          }
+          if (result) {
+            jsonWrite(res, result);
+          }
+        })
+      }else if(result[0].shopNum!=0){
+        let message="该品牌下还有商品"
+        result[0] = message
+        jsonWrite(res, result);
+      }
     }
   })
 });
@@ -547,14 +579,28 @@ router.post('/updateFirstClassify', (req, res) => {
 
 // 删除一级分类
 router.post('/delFirstClassify', (req, res) => {
-  var sql = 'update first_classify_info, admin_info set first_classify_info.IsDelete=0 where first_classify_info.id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql = 'select count(second_classify_info.second_classify_id) as ClassifyNum from second_classify_info, first_classify_info, admin_info where first_classify_info.first_classify_id=? and second_classify_info.first_classify_id=first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql1 = 'update first_classify_info, admin_info set first_classify_info.IsDelete=0 where first_classify_info.id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
   var params = req.body;
-  conn.query(sql, [params.id, params.admin_uuid], function(err, result) {
+  conn.query(sql, [params.first_classify_id, params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
+      if(result[0].ClassifyNum==0){
+        conn.query(sql1, [params.id, params.admin_uuid], function(err, result) {
+          if (err) {
+            console.log(err);
+          }
+          if (result) {
+            jsonWrite(res, result);
+          }
+        })
+      }else if(result[0].ClassifyNum!=0){
+        let message="该分类下还有二级分类"
+        result[0] = message
+        jsonWrite(res, result);
+      }
     }
   })
 });
@@ -579,6 +625,18 @@ router.post('/findsecondClassify', (req, res) => {
   var sql = 'select second_classify_info.*, first_classify_info.first_classify_name from second_classify_info, first_classify_info, admin_info where second_classify_info.IsDelete=1 and second_classify_info.first_classify_id =first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by second_classify_info.id desc'
   var params = req.body;
   conn.query(sql, [params.admin_uuid], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+router.post('/findsecondClassifyPic', (req, res) => {
+  var sql = 'select second_classify_pic_info.* from second_classify_pic_info, admin_info where second_classify_pic_info.second_classify_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var params = req.body;
+  conn.query(sql, [params.second_classify_id, params.admin_uuid], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -615,12 +673,23 @@ router.post('/updatesecondClassify', (req, res) => {
     }
   })
 });
-
-// 删除二级分类
-router.post('/delsecondClassify', (req, res) => {
-  var sql = 'update second_classify_info, admin_info set second_classify_info.IsDelete=0 where second_classify_info.id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+router.post('/delOneSecondpPic', (req, res) => {
+  var sql = 'delete from second_classify_pic_info where second_classify_id=?'
   var params = req.body;
-  conn.query(sql, [params.id, params.admin_uuid], function(err, result) {
+  conn.query(sql, [params.second_classify_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+// 添加分类图
+router.post('/addOneSecondpPic', (req, res) => {
+  var sql = 'insert into second_classify_pic_info (pic_root, second_classify_id) value (?, ?)'
+  var params = req.body;
+  conn.query(sql, [params.pic_root, params.second_classify_id], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -630,11 +699,51 @@ router.post('/delsecondClassify', (req, res) => {
   })
 });
 
+// 删除二级分类
+router.post('/delsecondClassify', (req, res) => {
+  var sql = 'select count(shop_info.shop_id) as ShopNum from second_classify_info, shop_info, admin_info where second_classify_info.second_classify_id=? and shop_info.second_classify_id=second_classify_info.second_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql1 = 'update second_classify_info, admin_info set second_classify_info.IsDelete=0 where second_classify_info.second_classify_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var params = req.body;
+  conn.query(sql, [params.second_classify_id, params.admin_uuid], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      if(result[0].ShopNum==0){
+        conn.query(sql1, [params.second_classify_id, params.admin_uuid], function(err, result) {
+          if (err) {
+            console.log(err);
+          }
+          if (result) {
+            jsonWrite(res, result);
+          }
+        })
+      }else if(result[0].ShopNum!=0){
+        let message="该分类下还有商品"
+        result[0] = message
+        jsonWrite(res, result);
+      }
+    }
+  })
+});
+
 // 添加二级分类
 router.post('/addSecondClassify', (req, res) => {
-  var sql = 'insert into second_classify_info (second_classify_id, first_classify_id, second_classify_name, second_classify_pic, IsDelete) value (?, ?, ?, ?, 1)'
+  var sql = 'insert into second_classify_info (second_classify_id, first_classify_id, second_classify_name, IsDelete) value (?, ?, ?, 1)'
   var params = req.body;
-  conn.query(sql, [params.second_classify_id, params.first_classify_id, params.second_classify_name, params.second_classify_pic], function(err, result) {
+  conn.query(sql, [params.second_classify_id, params.first_classify_id, params.second_classify_name], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+router.post('/addSecondClassifyPic', (req, res) => {
+  var sql = 'insert into second_classify_pic_info (second_classify_id, pic_root) value (?, ?)'
+  var params = req.body;
+  conn.query(sql, [params.second_classify_id, params.pic_root], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -901,7 +1010,7 @@ router.post('/addMsgList', (req, res) => {
 
 // 已读
 router.post('/readTheNews', (req, res) => {
-  var sql = 'update chat_record_info set is_read=0 where id in (select id from chat_info where user=? and admin=?)';
+  var sql = 'update chat_record_info set is_read=0 where chat_tips=0 and id in (select id from chat_info where user=? and admin=?)';
   var params = req.body;
   conn.query(sql, [params.user, params.admin], function(err, result) {
     if (err) {
