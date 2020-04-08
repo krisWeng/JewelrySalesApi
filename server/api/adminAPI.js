@@ -580,7 +580,7 @@ router.post('/updateFirstClassify', (req, res) => {
 // 删除一级分类
 router.post('/delFirstClassify', (req, res) => {
   var sql = 'select count(second_classify_info.second_classify_id) as ClassifyNum from second_classify_info, first_classify_info, admin_info where first_classify_info.first_classify_id=? and second_classify_info.first_classify_id=first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var sql1 = 'update first_classify_info, admin_info set first_classify_info.IsDelete=0 where first_classify_info.id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql1 = 'delete from first_classify_info where first_classify_id=?'
   var params = req.body;
   conn.query(sql, [params.first_classify_id, params.admin_uuid], function(err, result) {
     if (err) {
@@ -588,7 +588,7 @@ router.post('/delFirstClassify', (req, res) => {
     }
     if (result) {
       if(result[0].ClassifyNum==0){
-        conn.query(sql1, [params.id, params.admin_uuid], function(err, result) {
+        conn.query(sql1, [params.first_classify_id], function(err, result) {
           if (err) {
             console.log(err);
           }
