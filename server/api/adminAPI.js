@@ -551,7 +551,7 @@ router.post('/delOneBrand', (req, res) => {
 
 // 一级分类
 router.post('/findFirstClassify', (req, res) => {
-  var sql = 'select first_classify_info.* from first_classify_info, admin_info where first_classify_info.IsDelete=1 and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by first_classify_info.id desc'
+  var sql = 'select first_classify_info.* from first_classify_info, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by first_classify_info.id desc'
   var params = req.body;
   conn.query(sql, [params.admin_uuid], function(err, result) {
     if (err) {
@@ -607,7 +607,7 @@ router.post('/delFirstClassify', (req, res) => {
 
 // 添加一级
 router.post('/addFirstClassify', (req, res) => {
-  var sql = 'insert into first_classify_info (first_classify_id, first_classify_name, IsDelete) value (?, ?, 1)'
+  var sql = 'insert into first_classify_info (first_classify_id, first_classify_name) value (?, ?)'
   var params = req.body;
   conn.query(sql, [params.first_classify_id, params.first_classify_name], function(err, result) {
     if (err) {
@@ -622,7 +622,7 @@ router.post('/addFirstClassify', (req, res) => {
 
 // 二级分类
 router.post('/findsecondClassify', (req, res) => {
-  var sql = 'select second_classify_info.*, first_classify_info.first_classify_name from second_classify_info, first_classify_info, admin_info where second_classify_info.IsDelete=1 and second_classify_info.first_classify_id =first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by second_classify_info.id desc'
+  var sql = 'select second_classify_info.*, first_classify_info.first_classify_name from second_classify_info, first_classify_info, admin_info where second_classify_info.first_classify_id =first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by second_classify_info.id desc'
   var params = req.body;
   conn.query(sql, [params.admin_uuid], function(err, result) {
     if (err) {
@@ -648,7 +648,7 @@ router.post('/findsecondClassifyPic', (req, res) => {
 
 // 分类查询 二级分类
 router.post('/findfirstSecondClassify', (req, res) => {
-  var sql = 'select second_classify_info.*, first_classify_info.first_classify_name from second_classify_info, first_classify_info, admin_info where second_classify_info.first_classify_id=? and second_classify_info.IsDelete=1 and second_classify_info.first_classify_id =first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by second_classify_info.id desc'
+  var sql = 'select second_classify_info.*, first_classify_info.first_classify_name from second_classify_info, first_classify_info, admin_info where second_classify_info.first_classify_id=? and second_classify_info.first_classify_id =first_classify_info.first_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) order by second_classify_info.id desc'
   var params = req.body;
   conn.query(sql, [params.first_classify_id, params.admin_uuid], function(err, result) {
     if (err) {
@@ -702,7 +702,7 @@ router.post('/addOneSecondpPic', (req, res) => {
 // 删除二级分类
 router.post('/delsecondClassify', (req, res) => {
   var sql = 'select count(shop_info.shop_id) as ShopNum from second_classify_info, shop_info, admin_info where second_classify_info.second_classify_id=? and shop_info.second_classify_id=second_classify_info.second_classify_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
-  var sql1 = 'update second_classify_info, admin_info set second_classify_info.IsDelete=0 where second_classify_info.second_classify_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql1 = 'delete from second_classify_info where second_classify_id=?'
   var params = req.body;
   conn.query(sql, [params.second_classify_id, params.admin_uuid], function(err, result) {
     if (err) {
@@ -710,7 +710,7 @@ router.post('/delsecondClassify', (req, res) => {
     }
     if (result) {
       if(result[0].ShopNum==0){
-        conn.query(sql1, [params.second_classify_id, params.admin_uuid], function(err, result) {
+        conn.query(sql1, [params.second_classify_id], function(err, result) {
           if (err) {
             console.log(err);
           }
@@ -729,7 +729,7 @@ router.post('/delsecondClassify', (req, res) => {
 
 // 添加二级分类
 router.post('/addSecondClassify', (req, res) => {
-  var sql = 'insert into second_classify_info (second_classify_id, first_classify_id, second_classify_name, IsDelete) value (?, ?, ?, 1)'
+  var sql = 'insert into second_classify_info (second_classify_id, first_classify_id, second_classify_name) value (?, ?, ?)'
   var params = req.body;
   conn.query(sql, [params.second_classify_id, params.first_classify_id, params.second_classify_name], function(err, result) {
     if (err) {
@@ -822,7 +822,7 @@ router.post('/delOneShopDetail', (req, res) => {
 });
 // 添加详情图
 router.post('/addOneShopDetail', (req, res) => {
-  var sql = 'insert into detail_info (detail_root, shop_id, IsDelete) value (?, ?, 1)'
+  var sql = 'insert into detail_info (detail_root, shop_id) value (?, ?)'
   var params = req.body;
   conn.query(sql, [params.detail_root, params.shop_id], function(err, result) {
     if (err) {
@@ -861,7 +861,7 @@ router.post('/delOneShopPhoto', (req, res) => {
 });
 // 添加详情图
 router.post('/addOneShopPhoto', (req, res) => {
-  var sql = 'insert into photo_info (photo_root, shop_id, IsDelete) value (?, ?, 1)'
+  var sql = 'insert into photo_info (photo_root, shop_id) value (?, ?)'
   var params = req.body;
   conn.query(sql, [params.photo_root, params.shop_id], function(err, result) {
     if (err) {
