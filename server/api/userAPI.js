@@ -242,7 +242,7 @@ router.post('/theShopList', (req, res) => {
 
 // 一级分类
 router.post('/FirstClassifyList', (req, res) => {
-  var sql = 'select first_classify_info.* from first_classify_info, user_info where first_classify_info.IsDelete=1 and user_info.user_id=(select user_id from user_info where user_id=?)'
+  var sql = 'select first_classify_info.* from first_classify_info, user_info where user_info.user_id=(select user_id from user_info where user_id=?)'
   var params = req.body;
   conn.query(sql, [params.user_id], function(err, result) {
     if (err) {
@@ -256,35 +256,17 @@ router.post('/FirstClassifyList', (req, res) => {
 
 // 二级分类
 router.post('/secondClassifyList', (req, res) => {
-  var sql = 'select second_classify_info.* from second_classify_info, user_info, first_classify_info where second_classify_info.first_classify_id=? and second_classify_info.IsDelete=1 and second_classify_info.first_classify_id=first_classify_info.first_classify_id and user_info.user_id=(select user_id from user_info where user_id=?)'
-  var sql1 = 'select second_classify_pic_info.pic_root from second_classify_pic_info, second_classify_info, user_info where second_classify_pic_info.second_classify_id=second_classify_info.second_classify_id and second_classify_pic_info.second_classify_id=? and user_info.user_id=(select user_id from user_info where user_id=?)'
+  var sql1 = 'select second_classify_pic_info.second_classify_id, second_classify_info.second_classify_name, CONCAT(GROUP_CONCAT (concat(concat(pic_root)))) AS picList from second_classify_info, second_classify_pic_info, user_info where second_classify_info.first_classify_id=? and second_classify_pic_info.second_classify_id=second_classify_info.second_classify_id and user_info.user_id=(select user_id from user_info where user_id=?) GROUP BY second_classify_pic_info.second_classify_id'
   var params = req.body;
-  conn.query(sql, [params.first_classify_id, params.user_id], function(err, result) {
+  conn.query(sql1, [params.first_classify_id, params.user_id], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      var pic_list=[]
-      var secondMsg=[]
-      secondMsg=result
-      secondMsg.map((item, index)=>{
-        conn.query(sql1, [item.second_classify_id, params.user_id], function(err, result) {
-          if (err) {
-            console.log(err);
-          }
-          if (result) {
-            if(result.length==0){
-              secondMsg[index].pic_list = []
-            }else{
-              result.map((itemA, index)=>{
-                pic_list.push(itemA.pic_root)
-              })
-              secondMsg[index].pic_list= pic_list
-              jsonWrite(res, secondMsg);
-            }
-          }
-        })
+      result.map((item,index)=>{
+        result[index].picList = result[index].picList.split(',')
       })
+      jsonWrite(res, result);
     }
   })
 });
@@ -504,15 +486,21 @@ router.post('/newsToAdmin', (req, res) => {
           console.log(err);
         }
         if (result) {
-          result.map((itemA,indexA)=>{
+          if(result.length==0){
             newsAdmin.map((item,index)=>{
-              if(itemA.admin==item.admin_uuid){
-                newsAdmin[index].chat_list = result[indexA]
-              }else{
-                newsAdmin[index].chat_list = []
-              }
+              newsAdmin[index].chat_list = []
             })
-          })
+          }else{
+            result.map((itemA,indexA)=>{
+              newsAdmin.map((item,index)=>{
+                if(itemA.admin==item.admin_uuid){
+                  newsAdmin[index].chat_list = result[indexA]
+                }else{
+                  newsAdmin[index].chat_list = []
+                }
+              })
+            })
+          }
           jsonWrite(res, newsAdmin);
         }
       })
@@ -536,14 +524,31 @@ router.post('/readTheNewsUser', (req, res) => {
 
 // 聊天记录
 router.post('/chatToAdmin', (req, res) => {
-  var sql = 'select chat_record_info.*, user_info.sex as userSex, admin_info.sex as adminSex, admin_info.admin_name from chat_info, chat_record_info, user_info, admin_info where user=? and admin=? and chat_record_info.id=chat_info.id and user=user_info.user_id and admin=admin_info.admin_uuid'
+  var sql = 'select chat_record_info.* from chat_info, chat_record_info, user_info, admin_info where chat_record_info.id=chat_info.id and chat_info.user=? and chat_info.admin=?'
+  var sql1= 'select user_info.sex as userSex, admin_info.sex as adminSex, admin_info.admin_name from user_info, admin_info where user_id=? and admin_uuid=?'
   var params = req.body;
   conn.query(sql, [params.user, params.admin], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
+      var chat_list = []
+      chat_list = result
+      conn.query(sql1, [params.user_id, params.admin_uuid], function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        if (result) {
+          if(chat_list.length==0){
+            result = result
+          }else{
+            result.map((item,index)=>{
+              result[index].chatList = chat_list
+            })
+          }
+          jsonWrite(res, result);
+        }
+      })
     }
   })
 });
@@ -564,7 +569,7 @@ router.post('/addPersonList', (req, res) => {
 });
 // 添加chat_record_info
 router.post('/addMsgList', (req, res) => {
-  var sql = 'insert into chat_record_info (id, chat_msg, chat_time, chat_tips, is_read) value (?, ?, ?, ? 1)'
+  var sql = 'insert into chat_record_info (id, chat_msg, chat_time, chat_tips, is_read) value (?, ?, ?, 1)'
   var params = req.body;
   conn.query(sql, [params.chat_msg, params.chat_time, params.chat_tips], function(err, result) {
     if (err) {
