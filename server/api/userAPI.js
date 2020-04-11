@@ -748,7 +748,6 @@ router.post('/addShopCar', (req, res) => {
     }
     if (result) {
       if(result.length>0){
-        console.log(result[0].shop_num)
         conn.query(sql3, [result[0].shop_num+1, params.shop_id, params.user_id], function(err, result) {
           if (err) {
             console.log(err);
