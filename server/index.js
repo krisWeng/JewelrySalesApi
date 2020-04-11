@@ -10,14 +10,11 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
-// app.use('/uploads', express.static(__dirname + '/uploads'))
-// const upload = multer({dest: __dirname + '/../../uploads'})
 app.use('/uploads', express.static('/uploads'))
 const multer = require('multer')
 const upload = multer({dest: '/../../uploads'})
 app.post('/api/admin/upload',upload.array('file'), async (req, res) => {
   const file = req.files
-  // file.url = `http://47.112.238.198:3000/uploads/${file[0].filename}.${req.files[0].originalname.split(".")[1]}`
   file.url = `http://http://8.129.211.213/uploads/${file[0].filename}.${req.files[0].originalname.split(".")[1]}`
   res.send(file.url)
 })
