@@ -696,32 +696,46 @@ router.post('/EvaTheOrder', (req, res) => {
 
 // 购物车
 router.post('/findShopCar', (req, res) => {
-  var sql = 'select brand_name, CONCAT(GROUP_CONCAT (concat(concat(tb1.shop_id), concat(";",shop_name), concat(";",shop_price), concat(";",shop_photo), concat(";",shop_num)))) AS shopList from (select shopcar_info.* from shopcar_info, shop_info where shopcar_info.shop_id=shop_info.shop_id and user_id=? group by shop_name having Count(shop_name)>=1) tb1, shop_info, brand_info where tb1.shop_id=shop_info.shop_id and shop_info.brand_id=brand_info.brand_id and user_id=? GROUP BY brand_info.brand_id'
-  var sql1 = 'update shopcar_info set shop_num=(select COUNT(id) from shopcar_info where user_id=? group by shop_id having Count(shop_id)>1) where  user_id=? and shop_id in (select shopcar_info.shop_id from shopcar_info, shop_info where shopcar_info.shop_id=shop_info.shop_id and user_id=? group by shop_name having Count(shop_name)>1)'
+	var sql = 'select shopcar_info.* from shopcar_info where user_id=?'
+  var sql1 = 'update shopcar_info set shop_num=(select COUNT(id) from shopcar_info where user_id=? group by shop_id having Count(shop_id)>1) where user_id=? and shop_id in (select shopcar_info.shop_id from shopcar_info where user_id=? group by shop_id having Count(shop_id)>1)'
   var sql2 = 'delete from shopcar_info where user_id=? and id not in(select max(id) from shopcar_info where user_id=? group by shop_id)'
+  var sql3 = 'select brand_name, CONCAT(GROUP_CONCAT (concat(concat(tb1.shop_id), concat(";",shop_name), concat(";",shop_price), concat(";",shop_photo), concat(";",shop_num)))) AS shopList from (select shopcar_info.* from shopcar_info, shop_info where shopcar_info.shop_id=shop_info.shop_id and user_id=? group by shop_name having Count(shop_name)>=1) tb1, shop_info, brand_info where tb1.shop_id=shop_info.shop_id and shop_info.brand_id=brand_info.brand_id and user_id=? GROUP BY brand_info.brand_id'
   var params = req.body;
-  conn.query(sql1, [params.user_id, params.user_id, params.user_id], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
-      conn.query(sql2, [params.user_id, params.user_id], function(err, result) {
-        if (err) {
-          console.log(err);
-        }
-        if (result) {
-          conn.query(sql, [params.user_id, params.user_id], function(err, result) {
-            if (err) {
-              console.log(err);
-            }
-            if (result) {
-              jsonWrite(res, result);
-            }
-          })
-        }
-      })
-    }
-  })
+	conn.query(sql, [params.user_id], function(err, result) {
+	  if (err) {
+	    console.log(err);
+	  }
+	  if (result) {
+	    if(result.length>0){
+				conn.query(sql1, [params.user_id, params.user_id, params.user_id], function(err, result) {
+				  if (err) {
+				    console.log(err);
+				  }
+				  if (result) {
+				    conn.query(sql2, [params.user_id, params.user_id], function(err, result) {
+				      if (err) {
+				        console.log(err);
+				      }
+				      if (result) {
+				        conn.query(sql3, [params.user_id, params.user_id], function(err, result) {
+				          if (err) {
+				            console.log(err);
+				          }
+				          if (result) {
+				            jsonWrite(res, result);
+				          }
+				        })
+				      }
+				    })
+				  }
+				})
+			}else{
+        result = []
+        jsonWrite(res, result);
+      }
+	  }
+	})
+
 });
 
 // 购物车改变数量
