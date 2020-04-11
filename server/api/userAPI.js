@@ -524,7 +524,7 @@ router.post('/readTheNewsUser', (req, res) => {
 
 // 聊天记录
 router.post('/chatToAdmin', (req, res) => {
-  var sql = 'select chat_record_info.* from chat_info, chat_record_info, user_info, admin_info where chat_record_info.id=chat_info.id and chat_info.user=? and chat_info.admin=?'
+  var sql = 'select chat_record_info.* from chat_info, chat_record_info where chat_record_info.id=chat_info.id and chat_info.user=? and chat_info.admin=?'
   var sql1= 'select user_info.sex as userSex, admin_info.sex as adminSex, admin_info.admin_name from user_info, admin_info where user_id=? and admin_uuid=?'
   var params = req.body;
   conn.query(sql, [params.user, params.admin], function(err, result) {
@@ -554,29 +554,23 @@ router.post('/chatToAdmin', (req, res) => {
 });
 
 // 发送消息
-// 添加chat_info
-router.post('/addPersonList', (req, res) => {
-  var sql = 'insert into chat_info (id, user, admin) value (?, ?, ?)'
+router.post('/addChatList', (req, res) => {
+  var sql = 'insert into chat_info (user, admin) value (?, ?)'
+  var sql1 = 'insert into chat_record_info (chat_msg, chat_time, chat_tips, is_read) value (?, ?, ?, 1)'
   var params = req.body;
   conn.query(sql, [params.user, params.admin], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
-    }
-  })
-});
-// 添加chat_record_info
-router.post('/addMsgList', (req, res) => {
-  var sql = 'insert into chat_record_info (id, chat_msg, chat_time, chat_tips, is_read) value (?, ?, ?, 1)'
-  var params = req.body;
-  conn.query(sql, [params.chat_msg, params.chat_time, params.chat_tips], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
-      jsonWrite(res, result);
+      conn.query(sql1, [params.chat_msg, params.chat_time, params.chat_tips], function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        if (result) {
+          jsonWrite(res, result);
+        }
+      })
     }
   })
 });

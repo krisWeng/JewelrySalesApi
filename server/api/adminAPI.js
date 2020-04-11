@@ -770,7 +770,7 @@ router.post('/findAllShop', (req, res) => {
 
 // 条件搜索商品
 router.post('/findOneShop', (req, res) => {
-  var sql = 'select shop_info.* from shop_info, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) and (shop_id=? or brand_name=? or show_index=?)'
+  var sql = 'select shop_info.*, brand_info.brand_name from shop_info, admin_info, brand_info where shop_info.brand_id=brand_info.brand_id and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?) and (shop_id=? or brand_info.brand_name=? or show_index=?)'
   var params = req.body;
   conn.query(sql, [params.admin_uuid, params.shop_id, params.brand_name, params.show_index], function(err, result) {
     if (err) {
@@ -982,28 +982,23 @@ router.post('/findChatList', (req, res) => {
 
 // 发送消息
 // 添加chat_info
-router.post('/addPersonList', (req, res) => {
-  var sql = 'insert into chat_info (id, user, admin) value (?, ?, ?)'
+router.post('/addChatList', (req, res) => {
+  var sql = 'insert into chat_info (user, admin) value (?, ?)'
+  var sql1 = 'insert into chat_record_info (chat_msg, chat_time, chat_tips, is_read) value (?, ?, ?, 1)'
   var params = req.body;
   conn.query(sql, [params.user, params.admin], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
-    }
-  })
-});
-// 添加chat_record_info
-router.post('/addMsgList', (req, res) => {
-  var sql = 'insert into chat_record_info (id, chat_msg, chat_time, chat_tips, is_read) value (?, ?, ?, ? 1)'
-  var params = req.body;
-  conn.query(sql, [params.chat_msg, params.chat_time, params.chat_tips], function(err, result) {
-    if (err) {
-      console.log(err);
-    }
-    if (result) {
-      jsonWrite(res, result);
+      conn.query(sql1, [params.chat_msg, params.chat_time, params.chat_tips], function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        if (result) {
+          jsonWrite(res, result);
+        }
+      })
     }
   })
 });
