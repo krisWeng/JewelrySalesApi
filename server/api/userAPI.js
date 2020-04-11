@@ -697,7 +697,7 @@ router.post('/EvaTheOrder', (req, res) => {
 // 购物车
 router.post('/findShopCar', (req, res) => {
 	var sql = 'select shopcar_info.* from shopcar_info where user_id=?'
-  var sql1 = 'update shopcar_info set shop_num=(select * from (select COUNT(id) from shopcar_info where user_id=? group by shop_id having Count(shop_id)>=1) tb1) where user_id=? and shop_id in (select shopcar_info.shop_id from shopcar_info where user_id=? group by shop_id having Count(shop_id)>1)'
+  var sql1 = 'update shopcar_info set shop_num=(select tb1.* from (select COUNT(id) from shopcar_info where user_id=? group by shop_id having Count(shop_id)>=1) tb1) where user_id=? and shop_id in (select shopcar_info.shop_id from shopcar_info where user_id=? group by shop_id having Count(shop_id)>1)'
   var sql2 = 'delete from shopcar_info where user_id=? and id not in(select max(id) from shopcar_info where user_id=? group by shop_id)'
   var sql3 = 'select brand_name, CONCAT(GROUP_CONCAT (concat(concat(tb1.shop_id), concat(";",shop_name), concat(";",shop_price), concat(";",shop_photo), concat(";",shop_num)))) AS shopList from (select shopcar_info.* from shopcar_info, shop_info where shopcar_info.shop_id=shop_info.shop_id and user_id=? group by shop_name having Count(shop_name)>=1) tb1, shop_info, brand_info where tb1.shop_id=shop_info.shop_id and shop_info.brand_id=brand_info.brand_id and user_id=? GROUP BY brand_info.brand_id'
   var params = req.body;
