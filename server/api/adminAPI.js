@@ -65,7 +65,7 @@ router.post('/CartAllNum', (req, res) => {
 
 // 不同状态的订单数
 router.post('/CartAllStatusNum', (req, res) => {
-  var sql = 'select count(case when order_status = 2 then 1 end) as wait_pay, count(case when order_status = 3 then 1 end) as wait_send, count(case when order_status = 4 then 1 end) as wait_get, count(case when order_status = 6 then 1 end) as ok, count(case when order_status = 7 then 1 end) as wait_back from (select order_info.* from order_info GROUP BY order_id HAVING count(order_id)>=1) tb_1, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
+  var sql = 'select count(case when order_status = 2 then 1 end) as wait_pay, count(case when order_status = 3 then 1 end) as wait_send, count(case when order_status = 4 then 1 end) as wait_get, count(case when order_status = 6 then 1 end) as ok, count(case when order_status = 0 then 1 end) as wait_back, count(case when order_status = 7 then 1 end) as okDrak from (select order_info.* from order_info GROUP BY order_id HAVING count(order_id)>=1) tb_1, admin_info where admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)'
   var params = req.body;
   conn.query(sql, [params.admin_uuid], function(err, result) {
     if (err) {

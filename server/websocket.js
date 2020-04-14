@@ -35,5 +35,5 @@ wsServer.on('request', function(request) {
 
 
 server.listen(3001, function() {
-    console.log((new Date()) + ' Server is listening on port 3001');
+  console.log((new Date()) + ' Server is listening on port 3001');
 });

@@ -605,7 +605,7 @@ router.post('/orderAll', (req, res) => {
 router.post('/ConfirmTheOrder', (req, res) => {
   var sql = 'update order_info set order_status=5, consigneeTime=? where order_id=? and order_status=? and user_id=?'
   var params = req.body;
-  conn.query(sql, [params.order_id, params.order_status, params.consigneeTime, params.user_id], function(err, result) {
+  conn.query(sql, [params.consigneeTime, params.order_id, params.order_status, params.user_id], function(err, result) {
     if (err) {
       console.log(err);
     }
@@ -618,13 +618,32 @@ router.post('/ConfirmTheOrder', (req, res) => {
 // 取消订单
 router.post('/cancelOneOrder', (req, res) => {
   var sql = 'delete from order_info where order_id=? and order_status=? and user_id=?'
+  var sql1 = 'select shop_info.shop_stock, shop_info.shop_id from shop_info where shop_id in (select shop_info.shop_id from shop_info, order_info where shop_info.shop_id=order_info.shop_id and order_info.order_id=? and order_status=? and order_info.user_id=?)'
+  var sql2 = 'update shop_info set shop_stock=? where shop_id=?'
   var params = req.body;
-  conn.query(sql, [params.order_id, params.order_status, params.user_id], function(err, result) {
+  conn.query(sql1, [params.order_id, params.order_status, params.user_id], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
-      jsonWrite(res, result);
+      result.map((item,index)=>{
+        conn.query(sql2, [parseInt(item.shop_stock)+1, item.shop_id], function(err, result) {
+          if (err) {
+            console.log(err);
+          }
+          if (result) {
+
+          }
+        })
+      })
+      conn.query(sql, [params.order_id, params.order_status, params.user_id], function(err, result) {
+        if (err) {
+          console.log(err);
+        }
+        if (result) {
+          jsonWrite(res, result);
+        }
+      })
     }
   })
 });
