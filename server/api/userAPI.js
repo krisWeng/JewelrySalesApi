@@ -1000,6 +1000,240 @@ router.post('/PayOneOrder', (req, res) => {
 });
 
 
+// 复制链接页面
+// 单个商品详情
+router.post('/copyShopMsg', (req, res) => {
+  var sql = 'select shop_info.*, brand_info.brand_name from shop_info, brand_info where shop_id=? and shop_info.brand_id=brand_info.brand_id and shop_info.IsDelete=1'
+  var params = req.body;
+  conn.query(sql, [params.shop_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+// 单个商品详情图片
+router.post('/copyShopDetail', (req, res) => {
+  var sql = 'select detail_info.* from detail_info where shop_id=?'
+  var params = req.body;
+  conn.query(sql, [params.shop_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      var detail_list=[]
+      result.map(item=>{
+        detail_list.push(item.detail_root)
+      })
+      result=detail_list
+      jsonWrite(res, result);
+    }
+  })
+});
+
+// 单个商品轮播图片
+router.post('/copyShopPhoto', (req, res) => {
+  var sql = 'select photo_info.* from photo_info where shop_id=?'
+  var params = req.body;
+  conn.query(sql, [params.shop_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      var photo_list=[]
+      result.map(item=>{
+        photo_list.push(item.photo_root)
+      })
+      result=photo_list
+      jsonWrite(res, result);
+    }
+  })
+});
+
+
+// 查找好友
+router.post('/searchFriend', (req, res) => {
+  var sql = 'select * from user_info where user_name=? or user_phone=?'
+  var params = req.body;
+  conn.query(sql, [params.user_name, params.user_phone], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+// 发出申请
+router.post('/applyFriend', (req, res) => {
+  var sql = 'select * from friend_info where user_id=? and friend_id=?'
+  var sql1 = 'insert into friend_info (user_id, friend_id, IsSure) value (?, ?, 0)'
+  var params = req.body;
+  conn.query(sql, [params.user_id, params.friend_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      if(result.length>0){
+        result = '已发出申请'
+        jsonWrite(res, result);
+      }else{
+        conn.query(sql1, [params.user_id, params.friend_id], function(err, result) {
+          if (err) {
+            console.log(err);
+          }
+          if (result) {
+            jsonWrite(res, result);
+          }
+        })
+      }
+    }
+  })
+});
+
+// 得到申请
+router.post('/getApply', (req, res) => {
+  var sql = 'select friend_info.*, user_info.* from friend_info, user_info where friend_info.user_id=user_info.user_id and friend_id=? and IsSure=0'
+  var params = req.body;
+  conn.query(sql, [params.friend_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+// 通过申请
+router.post('/sureApply', (req, res) => {
+  var sql = 'update friend_info set IsSure=1 where user_id=? and friend_id=?'
+  var params = req.body;
+  conn.query(sql, [params.user_id, params.friend_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+// 拒绝申请
+router.post('/refuseApply', (req, res) => {
+  var sql = 'delete from friend_info where user_id=? and friend_id=? and IsSure=0'
+  var params = req.body;
+  conn.query(sql, [params.user_id, params.friend_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+
+// 好友列表
+router.post('/findFriend', (req, res) => {
+  var sql = 'select user_info.user_id, user_info.nick_name, user_info.sex from friend_info, user_info where (friend_info.user_id=? or friend_id=?) and (friend_info.user_id=user_info.user_id or friend_info.friend_id=user_info.user_id) and IsSure=1'
+  var sql1 = 'select friend_chat_info.* from friend_chat_info, friend_info where (friend_chat_info.sender=friend_info.user_id or friend_chat_info.receiver=friend_info.user_id) and (friend_info.user_id=? or friend_info.friend_id=?)'
+  var params = req.body;
+  conn.query(sql, [params.user_id, params.friend_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      let friendList = []
+      result.map((item,index)=>{
+        if(result[index].user_id!=params.user_id){
+          friendList.push(result[index])
+          conn.query(sql1, [result[index].user_id, result[index].user_id], function(err, result) {
+            if (err) {
+              console.log(err);
+            }
+            if (result) {
+              if(result.length==0){
+                friendList.map((item,index)=>{
+                  friendList[index].chat_list = []
+                })
+              }else{
+                result.map((itemA,indexA)=>{
+                  friendList.map((item,index)=>{
+                    if(friendList[index].user_id==result[indexA].sender){
+                      friendList[index].chat_list = result[indexA]
+                    }
+                  })
+                })
+              }
+              jsonWrite(res, friendList);
+            }
+          })
+        }
+      })
+    }
+  })
+});
+// 已读
+router.post('/readFriend', (req, res) => {
+  var sql = 'update friend_chat_info set is_read=0 where sender=? and receiver=?'
+  var params = req.body;
+  conn.query(sql, [params.sender, params.receiver], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+// 获取好友聊天记录
+router.post('/findMsgList', (req, res) => {
+  var sql = 'select friend_chat_info.*, sex from friend_chat_info, user_info where (sender=? or receiver=?) and friend_chat_info.receiver=user_info.user_id order by id asc'
+  var params = req.body;
+  conn.query(sql, [params.sender, params.receiver], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+// 获取头像
+router.post('/findHeaderPic', (req, res) => {
+  var sql = 'select user_id, sex, nick_name from (select user_id, sex, nick_name from friend_chat_info, user_info where sender=? and friend_chat_info.sender=user_info.user_id) tb1 UNION ALL select user_id, sex, nick_name from (select user_id, sex, nick_name from friend_chat_info, user_info where receiver=? and friend_chat_info.receiver=user_info.user_id) tb2'
+  var params = req.body;
+  conn.query(sql, [params.sender, params.receiver], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+// 发送消息
+router.post('/addFriendChat', (req, res) => {
+  var sql = 'insert into friend_chat_info (sender, receiver, chat_msg, chat_time, is_read) value (?, ?, ?, ?, 1)'
+  var params = req.body;
+  conn.query(sql, [params.sender, params.receiver, params.chat_msg, params.chat_time], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+
+
+
+
 
 // 一定要加
 module.exports = router;

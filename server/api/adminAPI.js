@@ -1018,5 +1018,20 @@ router.post('/readTheNews', (req, res) => {
 });
 
 
+// 联系人订单表格
+router.post('/finduserOrder', (req, res) => {
+  var sql = 'select order_info.order_id, order_info.totalPrice, order_info.totalNum, order_info.remarks, order_info.order_status, shop_info.shop_photo, shop_info.shop_name, user_name, receiving_info.province, receiving_info.city, receiving_info.address from order_info, shop_info, user_info, receiving_info where order_info.shop_id=shop_info.shop_id and order_info.consignee_id=receiving_info.consignee_id and order_info.user_id=user_info.user_id and order_info.user_id=?';
+  var params = req.body;
+  conn.query(sql, [params.user_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
+
+
 // 一定要加
 module.exports = router;
