@@ -1231,7 +1231,33 @@ router.post('/addFriendChat', (req, res) => {
 });
 
 
+// 查找省份
+router.post('/findProvince', (req, res) => {
+  var sql = 'select province_info.* from province_info, user_info where user_id=?'
+  var params = req.body;
+  conn.query(sql, [params.user_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
 
+// 查找城市
+router.post('/findCity', (req, res) => {
+  var sql = 'select city_info.* from city_info, province_info, user_info where city_info.province=province_info.province and province_info.province=? and user_id=?'
+  var params = req.body;
+  conn.query(sql, [params.province, params.user_id], function(err, result) {
+    if (err) {
+      console.log(err);
+    }
+    if (result) {
+      jsonWrite(res, result);
+    }
+  })
+});
 
 
 

@@ -423,7 +423,7 @@ router.post('/updateNoDrawback', (req, res) => {
 
 // 编辑收货人信息
 router.post('/updateOneConsignee', (req, res) => {
-  var sql = "update order_info, admin_info set consignee=?, consignee_phone=?, province=?, city=?, address=? where order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
+  var sql = "update receiving_info, order_info, admin_info set consignee=?, consignee_phone=?, province=?, city=?, address=? where receiving_info.consignee_id=order_info.consignee_id and order_id=? and admin_info.admin_uuid=(select admin_uuid from admin_info where admin_uuid=?)"
   var params = req.body;
   conn.query(sql, [params.consignee, params.consignee_phone, params.province, params.city, params.address, params.order_id, params.admin_uuid], function(err, result) {
     if (err) {
