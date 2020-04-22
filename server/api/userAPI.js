@@ -687,7 +687,6 @@ router.post('/drawbackTheOrder', (req, res) => {
 // 写评价
 router.post('/writeShopEvaluate', (req, res) => {
 var sql = 'insert into evaluate_info (evaluate_cont, shop_id, evaluate_pic, evaluate_time, user_id) value (?, ?, ?, ?, ?)'
-
   var params = req.body;
   conn.query(sql, [params.evaluate_cont, params.shop_id, params.evaluate_pic, params.evaluate_time, params.user_id], function(err, result) {
     if (err) {
@@ -700,13 +699,26 @@ var sql = 'insert into evaluate_info (evaluate_cont, shop_id, evaluate_pic, eval
 });
 // 确认评价
 router.post('/EvaTheOrder', (req, res) => {
-  var sql = 'update order_info set order_status=6 where order_id=? and user_id=?'
+  var sql = 'select * from evaluate_info, order_info where order_info.shop_id=evaluate_info.shop_id and order_id=? and evaluate_info.user_id=?'
+  var sql1 = 'update order_info set order_status=6 where order_id=? and user_id=?'
   var params = req.body;
   conn.query(sql, [params.order_id, params.user_id], function(err, result) {
     if (err) {
       console.log(err);
     }
     if (result) {
+      if(result.length==0){
+        result = '没有评价'
+      }else{
+        conn.query(sql1, [params.order_id, params.user_id], function(err, result) {
+          if (err) {
+            console.log(err);
+          }
+          if (result) {
+            result=result[0]
+          }
+        })
+      }
       jsonWrite(res, result);
     }
   })
